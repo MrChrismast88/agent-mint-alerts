@@ -17,7 +17,20 @@ const CONFIG = {
   DEPLOY_BLOCK: 135496344,
   BSC_CHAIN_ID: 56,
   AGENT_ID_REGISTRY: "0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F",
-  BSC_RPC: "https://bsc-dataseed.binance.org/",
+  // Read-only RPCs tried in order. bsc-dataseed 403s ethers' default fetch
+  // (undici User-Agent), so every request goes out with a browser UA.
+  // eth_getLogs on public BSC nodes also caps the block range (~5000),
+  // so Subscribed events are fetched in LOG_CHUNK-sized windows.
+  RPC_URLS: [
+    "https://bsc-dataseed.binance.org/",
+    "https://bsc-dataseed1.binance.org/",
+    "https://bsc-dataseed2.binance.org/",
+    "https://bsc.publicnode.com",
+    "https://rpc.48.club",
+  ],
+  RPC_USER_AGENT:
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+  LOG_CHUNK: 4000,
 };
 
 const CONTRACT_ABI = [
@@ -48,6 +61,52 @@ let readContract = null; // read-only contract
 let registry = null; // read-only registry
 let userAddress = null;
 let alerts = [];
+let rpcIndex = 0;
+
+function makeProvider(url) {
+  const req = new ethers.FetchRequest(url);
+  req.setHeader("User-Agent", CONFIG.RPC_USER_AGENT);
+  return new ethers.JsonRpcProvider(req);
+}
+
+function bindReadContracts() {
+  registry = new ethers.Contract(
+    CONFIG.AGENT_ID_REGISTRY,
+    REGISTRY_ABI,
+    readProvider
+  );
+  if (deployed()) {
+    readContract = new ethers.Contract(
+      CONFIG.CONTRACT_ADDRESS,
+      CONTRACT_ABI,
+      readProvider
+    );
+  }
+}
+
+// Probe RPCs in order and keep the first that answers. Falls back to the
+// first URL if none answers, so calls still surface a real error.
+async function pickWorkingProvider() {
+  for (let i = 0; i < CONFIG.RPC_URLS.length; i++) {
+    rpcIndex = i;
+    try {
+      const p = makeProvider(CONFIG.RPC_URLS[i]);
+      await p.getBlockNumber();
+      return p;
+    } catch (e) {
+      // try the next RPC
+    }
+  }
+  rpcIndex = 0;
+  return makeProvider(CONFIG.RPC_URLS[0]);
+}
+
+// Switch the read provider to the next RPC and rebind the read contracts.
+function rotateProvider() {
+  rpcIndex = (rpcIndex + 1) % CONFIG.RPC_URLS.length;
+  readProvider = makeProvider(CONFIG.RPC_URLS[rpcIndex]);
+  bindReadContracts();
+}
 
 const deployed = () =>
   CONFIG.CONTRACT_ADDRESS !== "0x0000000000000000000000000000000000000000";
@@ -62,18 +121,9 @@ function setStatus(el, msg, ok) {
 }
 
 async function initRead() {
-  readProvider = new ethers.JsonRpcProvider(CONFIG.BSC_RPC);
-  registry = new ethers.Contract(
-    CONFIG.AGENT_ID_REGISTRY,
-    REGISTRY_ABI,
-    readProvider
-  );
+  readProvider = await pickWorkingProvider();
+  bindReadContracts();
   if (deployed()) {
-    readContract = new ethers.Contract(
-      CONFIG.CONTRACT_ADDRESS,
-      CONTRACT_ABI,
-      readProvider
-    );
     $("contract-address").textContent = CONFIG.CONTRACT_ADDRESS;
   }
   await refreshStats();
@@ -120,13 +170,19 @@ async function renderAlerts() {
         : a.kind === "free"
           ? '<span class="badge free">FREE</span>'
           : '<span class="badge paid">PAID</span>';
+    const webLink = a.website
+      ? `<a href="${escapeHtml(a.website)}" target="_blank" rel="noopener">${escapeHtml(a.website)}</a>`
+      : "chưa có";
+    const xLink = a.x
+      ? `<a href="${escapeHtml(a.x)}" target="_blank" rel="noopener">${escapeHtml(a.x)}</a>`
+      : "chưa có";
     div.innerHTML =
       `<h3>${escapeHtml(a.project)}${a.ticker ? " ($" + escapeHtml(a.ticker) + ")" : ""}${badge}</h3>` +
       `<p class="meta">Alert #${a.alertId} · posted ${escapeHtml(a.posted)} · ${escapeHtml(a.chain)}</p>` +
       `<p>${escapeHtml(a.note)}</p>` +
       `<p class="meta">Project contract: <code>${escapeHtml(a.contract)}</code><br>` +
-      `Website: <a href="${escapeHtml(a.website)}" target="_blank" rel="noopener">${escapeHtml(a.website)}</a> · ` +
-      `X: <a href="${escapeHtml(a.x)}" target="_blank" rel="noopener">${escapeHtml(a.x)}</a></p>`;
+      `Website: ${webLink} · ` +
+      `X: ${xLink}</p>`;
     const btn = document.createElement("button");
     btn.textContent = "Claim this alert (gas only)";
     btn.disabled = true; // enabled by refreshClaimButtons() when applicable
@@ -196,15 +252,48 @@ async function resolveAiName(address) {
     if (uri.startsWith("ipfs://")) {
       uri = "https://ipfs.io/ipfs/" + uri.slice(7);
     }
-    const res = await fetch(uri);
-    const meta = await res.json();
-    if (meta && typeof meta.name === "string" && meta.name.length > 0) {
-      return meta.name;
+    // Don't let a slow IPFS gateway stall the list: 8s timeout.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(uri, { signal: ctrl.signal });
+      const meta = await res.json();
+      if (meta && typeof meta.name === "string" && meta.name.length > 0) {
+        return meta.name;
+      }
+    } finally {
+      clearTimeout(timer);
     }
     return null;
   } catch (e) {
     return null;
   }
+}
+
+// Fetch Subscribed events in small block windows. Public BSC nodes reject
+// eth_getLogs over a wide range (and 403 ethers' default fetch), so each
+// window is retried across the RPC list before giving up.
+async function fetchSubscribedEvents() {
+  const latest = await readProvider.getBlockNumber();
+  const filter = readContract.filters.Subscribed();
+  const events = [];
+  for (let from = CONFIG.DEPLOY_BLOCK; from <= latest; from += CONFIG.LOG_CHUNK) {
+    const to = Math.min(from + CONFIG.LOG_CHUNK - 1, latest);
+    let done = false;
+    let lastErr = null;
+    for (let i = 0; i < CONFIG.RPC_URLS.length && !done; i++) {
+      try {
+        const chunk = await readContract.queryFilter(filter, from, to);
+        events.push(...chunk);
+        done = true;
+      } catch (e) {
+        lastErr = e;
+        rotateProvider();
+      }
+    }
+    if (!done) throw lastErr;
+  }
+  return events;
 }
 
 async function renderRecentSubscribers() {
@@ -214,10 +303,7 @@ async function renderRecentSubscribers() {
     return;
   }
   try {
-    const events = await readContract.queryFilter(
-      readContract.filters.Subscribed(),
-      CONFIG.DEPLOY_BLOCK
-    );
+    const events = await fetchSubscribedEvents();
     const recent = events.slice(-10).reverse();
     if (recent.length === 0) {
       ul.innerHTML = "<li>No subscribers yet — be the first.</li>";
@@ -227,14 +313,16 @@ async function renderRecentSubscribers() {
     for (const ev of recent) {
       const li = document.createElement("li");
       const addr = ev.args.subscriber;
-      const name = await resolveAiName(addr);
       const when = new Date(Number(ev.args.timestamp) * 1000);
-      li.textContent =
-        (name ? name + "  " : "") +
-        trunc(addr) +
-        "  ·  " +
-        when.toLocaleString();
+      // Show the address immediately; fill in the .ai name async so one
+      // slow registry/IPFS lookup can't stall the whole list.
+      li.textContent = trunc(addr) + "  ·  " + when.toLocaleString();
       ul.appendChild(li);
+      resolveAiName(addr).then((name) => {
+        if (name) {
+          li.textContent = name + "  " + trunc(addr) + "  ·  " + when.toLocaleString();
+        }
+      });
     }
   } catch (e) {
     ul.innerHTML = "<li>Could not load subscribers: " + escapeHtml(shortError(e)) + "</li>";
