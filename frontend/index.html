@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Mint Alerts — free-mint alerts for Agent ID holders</title>
+<meta name="description" content="On-chain registry for Agent ID holders: subscribe once and claim verified free-mint alerts. Built for the Binance Wallet x BNB Chain Agent ID Hackathon.">
+<link rel="stylesheet" href="style.css">
+<!-- ethers v6, vendored locally (no CDN dependency) -->
+<script src="vendor/ethers.umd.min.js"></script>
+</head>
+<body>
+<header>
+  <h1>Agent Mint Alerts</h1>
+  <p class="tagline">Verified free-mint alerts, claimed on-chain by Agent ID holders.</p>
+  <p class="sub">Built for the Binance Wallet &times; BNB Chain Agent ID Hackathon. No token, no fees, no promises — every interaction costs only gas.</p>
+</header>
+
+<main>
+  <section id="wallet">
+    <h2>Your wallet</h2>
+    <p id="wallet-status">Not connected. Connect the wallet that holds your Agent ID (MetaMask or Binance Wallet extension) — in your own browser, no QR code, no session is stored.</p>
+    <button id="connect-btn">Connect wallet</button>
+    <button id="switch-btn" hidden>Switch to BNB Chain</button>
+    <p id="agent-status"></p>
+  </section>
+
+  <section id="subscribe">
+    <h2>Subscribe</h2>
+    <p>One subscription per wallet, only for Agent ID holders. Subscribing records your wallet on-chain so your alert claims count as Agent ID interactions.</p>
+    <p>Subscribers: <strong id="subscriber-count">…</strong> &nbsp;·&nbsp; Total alert claims: <strong id="total-claims">…</strong></p>
+    <button id="subscribe-btn" disabled>Subscribe (free, gas only)</button>
+    <p id="subscribe-status"></p>
+  </section>
+
+  <section id="alerts">
+    <h2>Verified alerts</h2>
+    <p>Alerts already posted and verified on Telegram <a href="https://t.me/agentidmintalerts" target="_blank" rel="noopener">@agentidmintalerts</a>. Claiming an alert records on-chain that your Agent ID saw it — it does not mint the project's NFT for you; mint on the project's own site.</p>
+    <div id="alert-list"><p>Loading alerts…</p></div>
+  </section>
+
+  <section id="recent">
+    <h2>Recent subscribers</h2>
+    <p>Only wallets that subscribed themselves appear here. Names are resolved read-only from the Agent ID registry; a wallet shows as a truncated address when no name resolves.</p>
+    <ul id="subscriber-list"><li>Loading…</li></ul>
+  </section>
+
+  <section id="how">
+    <h2>How Agent ID is used</h2>
+    <ul>
+      <li><strong>Access control:</strong> <code>subscribe()</code> and <code>claimAlert()</code> both require the caller to hold an Agent ID (<code>balanceOf &gt; 0</code> on the SPACE ID Agent ID registry, <code>0x60B9…22F</code> on BNB Chain).</li>
+      <li><strong>Identity:</strong> subscribers are listed by their <code>.ai</code> name when it resolves from the registry; nothing here looks up a wallet by name.</li>
+      <li><strong>Proof:</strong> every subscribe and claim is an on-chain event anyone can verify.</li>
+    </ul>
+    <p>The contract has no owner, no admin, no pause, no fees, no token and no upgradeability. Source is open and verified on BscScan (address below once deployed).</p>
+    <p>Contract: <code id="contract-address">not deployed yet</code></p>
+  </section>
+</main>
+
+<footer>
+  <p>Alerts source: <a href="https://t.me/agentidmintalerts" target="_blank" rel="noopener">t.me/agentidmintalerts</a> · Contract source: <a href="https://github.com/" target="_blank" rel="noopener">GitHub (link after publish)</a> · For AI agents: <a href="agent.md">agent.md</a> — how your agent subscribes and claims for you. · This page never asks for a seed phrase, private key or pairing code. Never scan a QR code to log in.</p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

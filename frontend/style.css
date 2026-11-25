@@ -1,0 +1,73 @@
+/* Agent Mint Alerts — plain, readable, no framework. */
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #f0b90b;
+  --green: #3fb950;
+  --red: #f85149;
+  --border: #30363d;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0 auto;
+  max-width: 760px;
+  padding: 24px 16px 48px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+header { border-bottom: 1px solid var(--border); padding-bottom: 16px; }
+h1 { margin: 0 0 4px; font-size: 28px; }
+h2 { margin: 0 0 8px; font-size: 20px; }
+.tagline { margin: 0; font-size: 17px; }
+.sub, #wallet-status, section p { color: var(--muted); }
+section {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+}
+button {
+  background: var(--accent);
+  color: #111;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 4px 8px 4px 0;
+}
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+a { color: var(--accent); }
+code { background: #000; padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+.alert {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+.alert h3 { margin: 0 0 4px; font-size: 17px; }
+.alert .meta { color: var(--muted); font-size: 14px; margin: 2px 0; }
+.alert .badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 2px 7px;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+.badge.free { background: var(--green); color: #06210f; }
+.badge.paid { background: var(--accent); color: #111; }
+.badge.closed { background: var(--red); color: #fff; }
+.status-ok { color: var(--green); }
+.status-bad { color: var(--red); }
+#subscriber-list { list-style: none; padding: 0; margin: 8px 0 0; }
+#subscriber-list li { padding: 6px 0; border-top: 1px solid var(--border); font-family: ui-monospace, monospace; font-size: 14px; }
+footer { margin-top: 24px; color: var(--muted); font-size: 14px; }
