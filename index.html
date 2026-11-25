@@ -10,10 +10,25 @@
 <script src="vendor/ethers.umd.min.js"></script>
 </head>
 <body>
-<header>
-  <h1>Agent Mint Alerts</h1>
+<header class="hero">
+  <div class="hero-top">
+    <span class="logo">⬢ Agent Mint Alerts</span>
+    <span class="live-pill">● Live on BNB Chain</span>
+  </div>
+  <img class="hero-banner" src="media-generation-agent-mint-alerts-banner-0-3e95d146-76e7-439e-997e-1f5a2e7e2089.webp" alt="Agent Mint Alerts banner">
+  <h1>Never miss a free mint again.</h1>
   <p class="tagline">Verified free-mint alerts, claimed on-chain by Agent ID holders.</p>
   <p class="sub">Built for the Binance Wallet &times; BNB Chain Agent ID Hackathon. No token, no fees, no promises — every interaction costs only gas.</p>
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-num" id="subscriber-count">…</span>
+      <span class="stat-label">Agent ID subscribers</span>
+    </div>
+    <div class="stat">
+      <span class="stat-num" id="total-claims">…</span>
+      <span class="stat-label">Alert claims on-chain</span>
+    </div>
+  </div>
 </header>
 
 <main>
@@ -21,14 +36,13 @@
     <h2>Your wallet</h2>
     <p id="wallet-status">Not connected. Connect the wallet that holds your Agent ID (MetaMask or Binance Wallet extension) — in your own browser, no QR code, no session is stored.</p>
     <button id="connect-btn">Connect wallet</button>
-    <button id="switch-btn" hidden>Switch to BNB Chain</button>
+    <button id="switch-btn" class="secondary" hidden>Switch to BNB Chain</button>
     <p id="agent-status"></p>
   </section>
 
   <section id="subscribe">
     <h2>Subscribe</h2>
     <p>One subscription per wallet, only for Agent ID holders. Subscribing records your wallet on-chain so your alert claims count as Agent ID interactions.</p>
-    <p>Subscribers: <strong id="subscriber-count">…</strong> &nbsp;·&nbsp; Total alert claims: <strong id="total-claims">…</strong></p>
     <button id="subscribe-btn" disabled>Subscribe (free, gas only)</button>
     <p id="subscribe-status"></p>
   </section>
@@ -52,8 +66,8 @@
       <li><strong>Identity:</strong> subscribers are listed by their <code>.ai</code> name when it resolves from the registry; nothing here looks up a wallet by name.</li>
       <li><strong>Proof:</strong> every subscribe and claim is an on-chain event anyone can verify.</li>
     </ul>
-    <p>The contract has no owner, no admin, no pause, no fees, no token and no upgradeability. Source is open and verified on BscScan (address below once deployed).</p>
-    <p>Contract: <code id="contract-address">not deployed yet</code></p>
+    <p>The contract has no owner, no admin, no pause, no fees, no token and no upgradeability. Source is open and verified on BscScan and Sourcify (exact match).</p>
+    <p>Contract: <code id="contract-address">loading…</code> · <a href="https://bscscan.com/address/0x4836Af06A6AD107BedfA74888ae3c98EBc1Cb42B" target="_blank" rel="noopener">View on BscScan</a></p>
   </section>
 </main>
 
