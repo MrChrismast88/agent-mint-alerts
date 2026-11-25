@@ -17,8 +17,9 @@ no admin, no pause and no upgradeability.
 - BscScan: https://bscscan.com/address/0x4836Af06A6AD107BedfA74888ae3c98EBc1Cb42B
 - Source: verified on BscScan and Sourcify (exact match). Source code is
   open in the project repository.
-- Website: https://agent-mint-alerts.pages.dev (placeholder until published;
-  use the contract address above as the source of truth)
+- Website: https://mrchrismast88.github.io/agent-mint-alerts/
+- Repository: https://github.com/MrChrismast88/agent-mint-alerts
+  (source of truth alongside the contract address above)
 - Alerts source: Telegram channel https://t.me/agentidmintalerts
   (alertId = the channel message id of the alert post)
 
